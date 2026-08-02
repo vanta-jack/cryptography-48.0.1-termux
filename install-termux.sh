@@ -2,7 +2,7 @@
 set -e
 
 echo "==> Updating Termux package list and installing base dependencies..."
-pkg update && pkg install python curl git -y
+pkg update && pkg install python curl git clang rust make pkg-config libffi openssl ca-certificates -y
 
 HERMES_HOME="${HERMES_HOME:-$HOME/.hermes}"
 INSTALL_DIR="$HERMES_HOME/hermes-agent"
@@ -43,6 +43,11 @@ source "$VENV_DIR/bin/activate"
 echo "==> Pre-installing cryptography 48.0.1 from pre-compiled wheelhouse..."
 pip install --upgrade pip setuptools wheel
 pip install --find-links "$WHEELHOUSE_DIR" cryptography==48.0.1
+
+echo "==> Pre-building Android psutil compatibility shim..."
+if [ -f "$INSTALL_DIR/scripts/install_psutil_android.py" ]; then
+    python "$INSTALL_DIR/scripts/install_psutil_android.py" --pip "$VENV_DIR/bin/python -m pip" || true
+fi
 
 echo "==> Installing Hermes Agent using pre-compiled Termux wheelhouse..."
 if [ -f constraints-termux.txt ]; then
