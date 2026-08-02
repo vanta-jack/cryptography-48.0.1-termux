@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-echo "==> Updating Termux packages and installing base dependencies..."
-pkg update && pkg upgrade -y
-pkg install python curl git -y
+echo "==> Updating Termux package list and installing base dependencies..."
+pkg update && pkg install python curl git -y
 
 WORK_DIR="$HOME/.hermes"
 WHEELHOUSE_DIR="$WORK_DIR/wheelhouse"
