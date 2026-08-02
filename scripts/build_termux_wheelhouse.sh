@@ -43,18 +43,18 @@ PSUTIL_VERSION=$(python3 -c 'import psutil; print(psutil.__version__)')
 PSUTIL_LOC=$(python3 -c 'import psutil, os; print(os.path.dirname(psutil.__file__))')
 PSUTIL_TAG="psutil-${PSUTIL_VERSION}-cp314-cp314-android_24_arm64_v8a"
 
-mkdir -p /tmp/psutil_wheel/psutil
-cp -r "${PSUTIL_LOC}/"* /tmp/psutil_wheel/psutil/
+mkdir -p "$HOME/psutil_wheel/psutil"
+cp -r "${PSUTIL_LOC}/"* "$HOME/psutil_wheel/psutil/"
 
-mkdir -p "/tmp/psutil_wheel/${PSUTIL_TAG}.dist-info"
+mkdir -p "$HOME/psutil_wheel/${PSUTIL_TAG}.dist-info"
 
 printf 'Wheel-Version: 1.0\nGenerator: manual\nRoot-Is-Purelib: false\nTag: cp314-cp314-android_24_arm64_v8a\n' \
-  > "/tmp/psutil_wheel/${PSUTIL_TAG}.dist-info/WHEEL"
+  > "$HOME/psutil_wheel/${PSUTIL_TAG}.dist-info/WHEEL"
 
 printf "Metadata-Version: 2.1\nName: psutil\nVersion: ${PSUTIL_VERSION}\n" \
-  > "/tmp/psutil_wheel/${PSUTIL_TAG}.dist-info/METADATA"
+  > "$HOME/psutil_wheel/${PSUTIL_TAG}.dist-info/METADATA"
 
-cd /tmp/psutil_wheel
+cd "$HOME/psutil_wheel"
 zip -r ~/build_whl/${PSUTIL_TAG}.whl psutil "${PSUTIL_TAG}.dist-info"
 
 echo "==> Final wheelhouse:"
