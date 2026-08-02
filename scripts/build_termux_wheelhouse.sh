@@ -30,14 +30,24 @@ python3 -m pip wheel --no-deps --wheel-dir ~/build_whl MarkupSafe
 
 echo "==> Retagging all binary wheels to android_24_arm64_v8a..."
 cd ~/build_whl
+mkdir -p ~/build_whl_tagged
+
 for w in *.whl; do
   case "$w" in
-    *cp314*|*abi3*|*aarch64*)
-      python3 -m wheel tags --platform-tag android_24_arm64_v8a "$w" 2>/dev/null || true
-      rm -f "$w"
+    *cp314*|*abi3*|*cp313*|*cp312*|*cp311*)
+      # Retag into the separate output dir, then delete original
+      python3 -m wheel tags --platform-tag android_24_arm64_v8a --wheel-dir ~/build_whl_tagged "$w" 2>/dev/null || \
+        cp "$w" ~/build_whl_tagged/
+      ;;
+    *py3-none-any*|*none-any*)
+      # Pure Python - copy as-is
+      cp "$w" ~/build_whl_tagged/
       ;;
   esac
 done
+
+echo "==> Retagged wheels:"
+ls -lah ~/build_whl_tagged/
 
 echo "==> Packaging psutil from Termux system pkg into wheel..."
 PSUTIL_VERSION=$(python3 -c 'import psutil; print(psutil.__version__)')
@@ -56,10 +66,10 @@ printf "Metadata-Version: 2.1\nName: psutil\nVersion: ${PSUTIL_VERSION}\n" \
   > "$HOME/psutil_wheel/${PSUTIL_TAG}.dist-info/METADATA"
 
 cd "$HOME/psutil_wheel"
-zip -r ~/build_whl/${PSUTIL_TAG}.whl psutil "${PSUTIL_TAG}.dist-info" || \
+zip -r ~/build_whl_tagged/${PSUTIL_TAG}.whl psutil "${PSUTIL_TAG}.dist-info" || \
   python3 -c "
 import zipfile, os, glob
-whl = os.path.expanduser('~/build_whl/${PSUTIL_TAG}.whl')
+whl = os.path.expanduser('~/build_whl_tagged/${PSUTIL_TAG}.whl')
 with zipfile.ZipFile(whl, 'w', zipfile.ZIP_DEFLATED) as z:
     for f in glob.glob('psutil/**', recursive=True):
         if os.path.isfile(f): z.write(f)
@@ -70,5 +80,5 @@ print('psutil wheel created via python zipfile:', whl)
 "
 
 echo "==> Final wheelhouse:"
-ls -lah ~/build_whl/
-cp -f ~/build_whl/*.whl /workspace/wheelhouse/
+ls -lah ~/build_whl_tagged/
+cp -f ~/build_whl_tagged/*.whl /workspace/wheelhouse/
