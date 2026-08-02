@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.14 (Matching Termux default python package)
+      - name: Set up Python 3.14
         uses: actions/setup-python@v5
         with:
           python-version: '3.14'
@@ -43,10 +43,21 @@ jobs:
           fi
           pip wheel --wheel-dir wheelhouse ./hermes || true
 
+      - name: Retag Wheels for Termux Android Compatibility
+        run: |
+          pip install wheel
+          for w in wheelhouse/*.whl; do
+            if [ -f "$w" ]; then
+              python -m wheel tags --platform-tag android_24_arm64_v8a "$w" 2>/dev/null || true
+              python -m wheel tags --platform-tag linux_aarch64 "$w" 2>/dev/null || true
+            fi
+          done
+
       - name: Pre-Deployment Test (Verify Editable Termux Installation on Python 3.14)
         run: |
           python -m venv test_venv
           source test_venv/bin/activate
+          pip install --find-links wheelhouse cryptography==48.0.1
           cd hermes
           if [ -f constraints-termux.txt ]; then
             pip install --find-links ../wheelhouse -e '.[termux]' -c constraints-termux.txt || pip install --find-links ../wheelhouse -e '.'
@@ -66,6 +77,6 @@ jobs:
           files: hermes-termux-wheelhouse.tar.gz
           tag_name: latest
           name: "Hermes Agent Termux Wheelhouse Latest"
-          body: "Automated pre-compiled Python 3.14 binary wheels (including cryptography 48.0.1 and hermes-agent dependencies) targeted for Termux / ARM64 Android."
+          body: "Automated pre-compiled Python 3.14 binary wheels (including cryptography 48.0.1 retagged for android_24_arm64_v8a and hermes-agent dependencies) targeted for Termux / ARM64 Android."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

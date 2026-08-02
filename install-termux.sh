@@ -40,9 +40,11 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-echo "==> Installing Hermes Agent using pre-compiled Termux wheelhouse..."
+echo "==> Pre-installing cryptography 48.0.1 from pre-compiled wheelhouse..."
 pip install --upgrade pip setuptools wheel
+pip install --find-links "$WHEELHOUSE_DIR" cryptography==48.0.1
 
+echo "==> Installing Hermes Agent using pre-compiled Termux wheelhouse..."
 if [ -f constraints-termux.txt ]; then
     pip install --find-links "$WHEELHOUSE_DIR" -e '.[termux]' -c constraints-termux.txt || pip install --find-links "$WHEELHOUSE_DIR" -e '.'
 else
