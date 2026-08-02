@@ -11,7 +11,7 @@ curl -L -o "$WHEELHOUSE_DIR/wheelhouse.tar.gz" https://github.com/vanta-jack/cry
 tar -xzf "$WHEELHOUSE_DIR/wheelhouse.tar.gz" -C "$WHEELHOUSE_DIR"
 
 echo "==> Installing cryptography 48.0.1..."
-pip install --upgrade pip setuptools wheel
-pip install --find-links "$WHEELHOUSE_DIR" cryptography==48.0.1 cffi
+python -m pip install --upgrade pip setuptools wheel 2>/dev/null || true
+python -m pip install --find-links "$WHEELHOUSE_DIR" cryptography==48.0.1 cffi
 
 python -c "import cryptography; from cryptography.hazmat.primitives import hashes; print('✓ cryptography 48.0.1 successfully installed and verified!')"
