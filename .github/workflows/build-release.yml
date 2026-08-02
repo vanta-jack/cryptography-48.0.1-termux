@@ -25,13 +25,15 @@ jobs:
             export ANDROID_API_LEVEL=24 &&
             pkg update -y &&
             pkg install -y python rust clang libffi openssl patchelf tar &&
+            mkdir -p /tmp/build_whl &&
             python3 -m pip install --upgrade pip setuptools wheel setuptools-rust maturin cffi &&
-            python3 -m pip wheel --wheel-dir /workspace/wheelhouse cryptography==48.0.1 cffi &&
-            for w in /workspace/wheelhouse/*.whl; do
+            python3 -m pip wheel --wheel-dir /tmp/build_whl cryptography==48.0.1 cffi &&
+            for w in /tmp/build_whl/*.whl; do
               if [ -f \"\$w\" ]; then
                 python3 -m wheel tags --platform-tag android_24_arm64_v8a \"\$w\" 2>/dev/null || true
               fi
-            done
+            done &&
+            cp -f /tmp/build_whl/*.whl /workspace/wheelhouse/
           "
           tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse .
 
