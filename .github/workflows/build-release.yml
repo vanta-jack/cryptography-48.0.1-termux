@@ -22,76 +22,16 @@ jobs:
         run: |
           mkdir -p wheelhouse
           chmod 777 wheelhouse
-          docker run --rm -v $PWD:/workspace termux/termux-docker:latest sh -c "
-            set -e &&
-            export ANDROID_API_LEVEL=24 &&
-            pkg update -y &&
-            pkg install -y python rust clang libffi openssl patchelf tar git make pkg-config python-psutil &&
-            mkdir -p ~/build_whl &&
-            python3 -m pip install --upgrade pip setuptools wheel setuptools-rust maturin cffi &&
-
-            echo '==> Building binary extension wheels one by one...' &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl cryptography==48.0.1 &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl cffi &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl pydantic-core &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl jiter &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl tiktoken &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl multidict &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl yarl &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl frozenlist &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl propcache &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl uvloop &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl watchfiles &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl 'ruamel.yaml.clib' &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl pyyaml &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl httptools &&
-            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl MarkupSafe &&
-
-            echo '==> Building psutil wheel from patched source (bypassing Android platform check)...' &&
-            pip download psutil --no-deps --no-binary :all: -d /tmp/psutil_src &&
-            cd /tmp/psutil_src &&
-            tar -xzf psutil-*.tar.gz &&
-            cd psutil-* &&
-            sed -i \"s/raise NotImplementedError.*platform android.*//g\" setup.py psutil/_common.py 2>/dev/null || true &&
-            sed -i \"s/if.*android.*not supported.*://g\" setup.py 2>/dev/null || true &&
-            python3 setup.py bdist_wheel --dist-dir ~/build_whl 2>&1 || pip wheel --no-deps --wheel-dir ~/build_whl 'psutil==7.2.2' --no-build-isolation 2>&1 || true &&
-            cd ~/build_whl &&
-
-            echo '==> Retagging all binary wheels to android_24_arm64_v8a...' &&
-            for w in *.whl; do
-              case \"\$w\" in
-                *cp314*|*abi3*|*aarch64*)
-                  python3 -m wheel tags --platform-tag android_24_arm64_v8a \"\$w\" 2>/dev/null || true
-                  rm -f \"\$w\"
-                  ;;
-              esac
-            done &&
-
-            echo '==> Packaging psutil from Termux system package into a wheel...' &&
-            PSUTIL_VERSION=\$(python3 -c 'import psutil; print(psutil.__version__)') &&
-            PSUTIL_LOC=\$(python3 -c 'import psutil, os; print(os.path.dirname(psutil.__file__))') &&
-            mkdir -p /tmp/psutil_wheel/psutil &&
-            cp -r \"\$PSUTIL_LOC\"/* /tmp/psutil_wheel/psutil/ &&
-            PSUTIL_TAG=\"psutil-\${PSUTIL_VERSION}-cp314-cp314-android_24_arm64_v8a\" &&
-            mkdir -p \"/tmp/psutil_wheel/\${PSUTIL_TAG}.dist-info\" &&
-            echo \"Wheel-Version: 1.0
-Generator: manual
-Root-Is-Purelib: false
-Tag: cp314-cp314-android_24_arm64_v8a\" > \"/tmp/psutil_wheel/\${PSUTIL_TAG}.dist-info/WHEEL\" &&
-            echo \"Metadata-Version: 2.1
-Name: psutil
-Version: \${PSUTIL_VERSION}\" > \"/tmp/psutil_wheel/\${PSUTIL_TAG}.dist-info/METADATA\" &&
-            cd /tmp/psutil_wheel &&
-            python3 -m wheel pack . --dest ~/build_whl 2>/dev/null || zip -r ~/build_whl/\${PSUTIL_TAG}.whl psutil \${PSUTIL_TAG}.dist-info &&
-
-            echo '==> Final wheelhouse contents:' &&
-            ls -lah ~/build_whl/ &&
-            cp -f ~/build_whl/*.whl /workspace/wheelhouse/
-          "
+          docker run --rm \
+            -v $PWD:/workspace \
+            termux/termux-docker:latest \
+            sh /workspace/scripts/build_termux_wheelhouse.sh
           echo "==> Final wheelhouse on host:"
           ls -lah wheelhouse/
           tar -czf hermes-termux-wheelhouse.tar.gz -C wheelhouse .
-          tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse cryptography* cffi* 2>/dev/null || tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse .
+          tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse . \
+            --include='cryptography*' --include='cffi*' --include='pycparser*' 2>/dev/null \
+            || tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse .
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
