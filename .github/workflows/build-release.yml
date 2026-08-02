@@ -1,4 +1,4 @@
-name: Build Hermes Termux Wheelhouse Release
+name: Build Cryptography 48.0.1 Termux Release
 
 on:
   push:
@@ -28,26 +28,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libssl-dev libffi-dev pkg-config clang rustc cargo
 
-      - name: Clone Hermes Agent repository
-        run: |
-          git clone --depth 1 https://github.com/NousResearch/hermes-agent.git hermes
-          sed -i 's/<3\.14/<3.15/g' hermes/pyproject.toml
-          if [ -f hermes/hermes_cli/main.py ]; then
-            sed -i 's/print(f"Install directory: {PROJECT_ROOT}")/project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n    print(f"Install directory: {project_root}")/g' hermes/hermes_cli/main.py || true
-          fi
-
-      - name: Build Wheelhouse for Python 3.14 (100% Binary Coverage)
-        env:
-          HERMES_NIX_BUILD: "1"
+      - name: Build Cryptography 48.0.1 Wheelhouse
         run: |
           mkdir -p wheelhouse
-          pip install --upgrade pip setuptools wheel setuptools-rust maturin pytest
-          pip wheel --wheel-dir wheelhouse cryptography==48.0.1 pydantic-core jiter tiktoken cffi psutil multidict yarl frozenlist || true
-          pip wheel --wheel-dir wheelhouse -r hermes/requirements.txt || true
-          if [ -f hermes/constraints-termux.txt ]; then
-            pip wheel --wheel-dir wheelhouse -c hermes/constraints-termux.txt cryptography==48.0.1 || true
-          fi
-          pip wheel --wheel-dir wheelhouse ./hermes || true
+          pip install --upgrade pip setuptools wheel setuptools-rust maturin pytest cffi
+          pip wheel --wheel-dir wheelhouse cryptography==48.0.1 cffi
 
       - name: Retag Wheels for Termux Android Compatibility
         run: |
@@ -59,30 +44,24 @@ jobs:
             fi
           done
 
-      - name: Pre-Deployment Test Suite (Full Binary Coverage & CLI Verification)
+      - name: Test Cryptography 48.0.1 Import
         run: |
           python -m venv test_venv
           source test_venv/bin/activate
-          pip install --find-links wheelhouse cryptography==48.0.1 pydantic-core jiter tiktoken cffi psutil multidict yarl frozenlist pytest openai
-          cd hermes
-          if [ -f constraints-termux.txt ]; then
-            pip install --find-links ../wheelhouse -e '.[termux]' -c constraints-termux.txt || pip install --find-links ../wheelhouse -e '.'
-          else
-            pip install --find-links ../wheelhouse -e '.'
-          fi
-          cd ..
-          pytest tests/test_wheelhouse.py
-          hermes --version
+          pip install --find-links wheelhouse cryptography==48.0.1 cffi
+          python -c "import cryptography; from cryptography.hazmat.primitives import hashes; print('VERIFIED: cryptography 48.0.1 imported successfully!')"
 
       - name: Compress Wheelhouse archive
-        run: tar -czf hermes-termux-wheelhouse.tar.gz -C wheelhouse .
+        run: tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse .
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: hermes-termux-wheelhouse.tar.gz
+          files: |
+            cryptography-48.0.1-termux-wheelhouse.tar.gz
+            wheelhouse/*.whl
           tag_name: latest
-          name: "Hermes Agent Termux Wheelhouse 0.19.1 (100% Binary Coverage)"
-          body: "Automated pre-compiled Python 3.14 binary wheels (including cryptography 48.0.1, pydantic-core, jiter, tiktoken, cffi, psutil, multidict, yarl retagged for android_24_arm64_v8a) targeted for Termux / ARM64 Android."
+          name: "Cryptography 48.0.1 Termux Wheelhouse Release"
+          body: "Pre-compiled cryptography 48.0.1 binary wheels retagged for android_24_arm64_v8a / Termux Python 3.14."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
