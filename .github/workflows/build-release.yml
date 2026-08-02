@@ -51,7 +51,8 @@ jobs:
           else
             pip install --find-links ../wheelhouse -e '.'
           fi
-          python -c "import cryptography; print('VERIFIED: cryptography loaded successfully'); import hermes; print('VERIFIED: hermes loaded successfully')"
+          python -c "import cryptography; print('VERIFIED: cryptography loaded successfully'); import hermes_cli; print('VERIFIED: hermes_cli loaded successfully')"
+          hermes --help
           cd ..
 
       - name: Compress Wheelhouse archive
