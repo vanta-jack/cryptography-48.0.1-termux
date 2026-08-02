@@ -4,7 +4,7 @@ set -e
 export ANDROID_API_LEVEL=24
 
 pkg update -y
-pkg install -y python rust clang libffi openssl patchelf tar git make pkg-config python-psutil
+pkg install -y python rust clang libffi openssl patchelf tar git make pkg-config python-psutil autoconf automake libtool
 
 mkdir -p ~/build_whl
 
@@ -20,7 +20,7 @@ python3 -m pip wheel --no-deps --wheel-dir ~/build_whl multidict
 python3 -m pip wheel --no-deps --wheel-dir ~/build_whl yarl
 python3 -m pip wheel --no-deps --wheel-dir ~/build_whl frozenlist
 python3 -m pip wheel --no-deps --wheel-dir ~/build_whl propcache
-python3 -m pip wheel --no-deps --wheel-dir ~/build_whl uvloop
+python3 -m pip wheel --no-deps --wheel-dir ~/build_whl uvloop || echo "WARNING: uvloop build failed (optional), skipping"
 python3 -m pip wheel --no-deps --wheel-dir ~/build_whl watchfiles
 python3 -m pip wheel --no-deps --wheel-dir ~/build_whl 'ruamel.yaml.clib'
 python3 -m pip wheel --no-deps --wheel-dir ~/build_whl pyyaml
