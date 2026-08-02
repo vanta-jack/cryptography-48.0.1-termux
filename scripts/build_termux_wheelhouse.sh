@@ -4,8 +4,9 @@ set -e
 export ANDROID_API_LEVEL=24
 
 pkg update -y
-pkg install -y python rust clang libffi openssl patchelf tar git make pkg-config python-psutil autoconf automake libtool
+pkg install -y python rust clang libffi openssl patchelf tar git make pkg-config python-psutil autoconf automake libtool zip
 
+echo "==> Python version: $(python3 --version)"
 mkdir -p ~/build_whl
 
 python3 -m pip install --upgrade pip setuptools wheel setuptools-rust maturin cffi
@@ -55,7 +56,18 @@ printf "Metadata-Version: 2.1\nName: psutil\nVersion: ${PSUTIL_VERSION}\n" \
   > "$HOME/psutil_wheel/${PSUTIL_TAG}.dist-info/METADATA"
 
 cd "$HOME/psutil_wheel"
-zip -r ~/build_whl/${PSUTIL_TAG}.whl psutil "${PSUTIL_TAG}.dist-info"
+zip -r ~/build_whl/${PSUTIL_TAG}.whl psutil "${PSUTIL_TAG}.dist-info" || \
+  python3 -c "
+import zipfile, os, glob
+whl = os.path.expanduser('~/build_whl/${PSUTIL_TAG}.whl')
+with zipfile.ZipFile(whl, 'w', zipfile.ZIP_DEFLATED) as z:
+    for f in glob.glob('psutil/**', recursive=True):
+        if os.path.isfile(f): z.write(f)
+    tag = '${PSUTIL_TAG}.dist-info'
+    for f in glob.glob(tag + '/**', recursive=True):
+        if os.path.isfile(f): z.write(f)
+print('psutil wheel created via python zipfile:', whl)
+"
 
 echo "==> Final wheelhouse:"
 ls -lah ~/build_whl/
