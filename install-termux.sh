@@ -28,9 +28,13 @@ else
     cd "$INSTALL_DIR"
 fi
 
-echo "==> Patching pyproject.toml for Termux Python 3.14 compatibility..."
+echo "==> Patching pyproject.toml and hermes_cli for Termux Python 3.14 compatibility..."
 if [ -f "$INSTALL_DIR/pyproject.toml" ]; then
     sed -i 's/<3\.14/<3.15/g' "$INSTALL_DIR/pyproject.toml" || true
+fi
+
+if [ -f "$INSTALL_DIR/hermes_cli/main.py" ]; then
+    sed -i 's/print(f"Install directory: {PROJECT_ROOT}")/project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\n    print(f"Install directory: {project_root}")/g' "$INSTALL_DIR/hermes_cli/main.py" || true
 fi
 
 if [ ! -d "$VENV_DIR" ]; then
@@ -55,6 +59,9 @@ if [ -f constraints-termux.txt ]; then
 else
     pip install --find-links "$WHEELHOUSE_DIR" -e '.'
 fi
+
+echo "==> Linking hermes executable to $PREFIX/bin/hermes for immediate shell access..."
+ln -sf "$VENV_DIR/bin/hermes" "$PREFIX/bin/hermes" 2>/dev/null || mkdir -p "$HOME/.local/bin" && ln -sf "$VENV_DIR/bin/hermes" "$HOME/.local/bin/hermes" 2>/dev/null || true
 
 echo "==> Hermes Agent installation complete!"
 echo "==> Activate your environment with: source $VENV_DIR/bin/activate"
