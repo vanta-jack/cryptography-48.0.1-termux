@@ -15,10 +15,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.13 (Compatible with hermes-agent requirements)
+      - name: Set up Python 3.11 (Matching Hermes Agent official installer)
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: '3.11'
 
       - name: Install system dependencies
         run: |
@@ -26,22 +26,33 @@ jobs:
           sudo apt-get install -y libssl-dev libffi-dev pkg-config clang rustc cargo
 
       - name: Clone Hermes Agent repository
-        run: git clone --depth 1 https://github.com/NousResearch/Hermes-Agent.git hermes
+        run: git clone --depth 1 https://github.com/NousResearch/hermes-agent.git hermes
 
-      - name: Build Wheelhouse for Python 3.13
+      - name: Build Wheelhouse for Python 3.11
+        env:
+          HERMES_NIX_BUILD: "1"
         run: |
           mkdir -p wheelhouse
           pip install --upgrade pip setuptools wheel setuptools-rust maturin
           pip wheel --wheel-dir wheelhouse cryptography==48.0.1
-          pip wheel --wheel-dir wheelhouse ./hermes
           pip wheel --wheel-dir wheelhouse -r hermes/requirements.txt || true
+          if [ -f hermes/constraints-termux.txt ]; then
+            pip wheel --wheel-dir wheelhouse -c hermes/constraints-termux.txt cryptography==48.0.1 || true
+          fi
+          pip wheel --wheel-dir wheelhouse ./hermes || true
 
-      - name: Pre-Deployment Test (Verify Wheelhouse Installation)
+      - name: Pre-Deployment Test (Verify Editable Termux Installation)
         run: |
           python -m venv test_venv
           source test_venv/bin/activate
-          pip install --no-index --find-links wheelhouse hermes-agent
+          cd hermes
+          if [ -f constraints-termux.txt ]; then
+            pip install --find-links ../wheelhouse -e '.[termux]' -c constraints-termux.txt || pip install --find-links ../wheelhouse -e '.'
+          else
+            pip install --find-links ../wheelhouse -e '.'
+          fi
           python -c "import cryptography; print('VERIFIED: cryptography loaded successfully'); import hermes; print('VERIFIED: hermes loaded successfully')"
+          cd ..
 
       - name: Compress Wheelhouse archive
         run: tar -czf hermes-termux-wheelhouse.tar.gz -C wheelhouse .
@@ -52,6 +63,6 @@ jobs:
           files: hermes-termux-wheelhouse.tar.gz
           tag_name: latest
           name: "Hermes Agent Termux Wheelhouse Latest"
-          body: "Automated pre-compiled Python 3.13 binary wheels (including cryptography 48.0.1 and hermes-agent) targeted for Termux / ARM64 Android."
+          body: "Automated pre-compiled Python 3.11 binary wheels (including cryptography 48.0.1 and hermes-agent dependencies) targeted for Termux / ARM64 Android."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
