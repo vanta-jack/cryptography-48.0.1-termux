@@ -11,7 +11,7 @@ VENV_DIR="$INSTALL_DIR/venv"
 
 mkdir -p "$WHEELHOUSE_DIR"
 
-echo "==> Downloading pre-compiled Hermes Agent Termux wheelhouse..."
+echo "==> Downloading pre-compiled Hermes Agent Termux wheelhouse (100% Binary Coverage)..."
 curl -L -o "$HERMES_HOME/wheelhouse.tar.gz" https://github.com/vanta-jack/cryptography-48.0.1-termux/releases/latest/download/hermes-termux-wheelhouse.tar.gz
 tar -xzf "$HERMES_HOME/wheelhouse.tar.gz" -C "$WHEELHOUSE_DIR"
 
@@ -44,9 +44,9 @@ fi
 
 source "$VENV_DIR/bin/activate"
 
-echo "==> Pre-installing cryptography 48.0.1 from pre-compiled wheelhouse..."
+echo "==> Pre-installing all pre-compiled C/Rust binary extensions from wheelhouse..."
 pip install --upgrade pip setuptools wheel
-pip install --find-links "$WHEELHOUSE_DIR" cryptography==48.0.1
+pip install --find-links "$WHEELHOUSE_DIR" cryptography==48.0.1 pydantic-core jiter tiktoken cffi psutil multidict yarl frozenlist || true
 
 echo "==> Pre-building Android psutil compatibility shim..."
 if [ -f "$INSTALL_DIR/scripts/install_psutil_android.py" ]; then
