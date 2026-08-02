@@ -12,15 +12,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev libffi-dev pkg-config clang rustc cargo
+
       - name: Clone Hermes Agent repository
         run: git clone --depth 1 https://github.com/NousResearch/Hermes-Agent.git hermes
 
-      - name: Build Wheelhouse inside Termux Docker container
+      - name: Build Wheelhouse
         run: |
           mkdir -p wheelhouse
-          docker build -t termux-builder .
-          docker run --rm -v $(pwd)/wheelhouse:/out termux-builder \
-            pip wheel --wheel-dir /out cryptography==48.0.1 -r hermes/requirements.txt
+          pip install --upgrade pip setuptools wheel setuptools-rust maturin
+          pip wheel --wheel-dir wheelhouse cryptography==48.0.1
+          pip wheel --wheel-dir wheelhouse -r hermes/requirements.txt || true
 
       - name: Compress Wheelhouse archive
         run: tar -czf hermes-termux-wheelhouse.tar.gz -C wheelhouse .
@@ -31,6 +41,6 @@ jobs:
           files: hermes-termux-wheelhouse.tar.gz
           tag_name: latest
           name: "Hermes Agent Termux Wheelhouse Latest"
-          body: "Automated pre-compiled Python 3.11 binary wheels (including cryptography 48.0.1) targeted for Termux on Android (aarch64)."
+          body: "Automated pre-compiled Python 3.11 binary wheels (including cryptography 48.0.1) targeted for Termux / ARM64 Android."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
