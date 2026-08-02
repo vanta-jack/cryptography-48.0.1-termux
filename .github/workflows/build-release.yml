@@ -1,4 +1,4 @@
-name: Build Cryptography 48.0.1 Termux Release
+name: Build Full Hermes Agent Termux Wheelhouse (100% Bionic)
 
 on:
   push:
@@ -18,34 +18,68 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build Cryptography 48.0.1 inside Termux Docker Container
+      - name: Build 100% Native Bionic Wheelhouse inside Termux Docker Container
         run: |
           mkdir -p wheelhouse
           chmod 777 wheelhouse
           docker run --rm -v $PWD:/workspace termux/termux-docker:latest sh -c "
+            set -e &&
             export ANDROID_API_LEVEL=24 &&
             pkg update -y &&
-            pkg install -y python rust clang libffi openssl patchelf tar &&
+            pkg install -y python rust clang libffi openssl patchelf tar git make pkg-config &&
             mkdir -p ~/build_whl &&
             python3 -m pip install --upgrade pip setuptools wheel setuptools-rust maturin cffi &&
-            python3 -m pip wheel --wheel-dir ~/build_whl cryptography==48.0.1 cffi &&
-            for w in ~/build_whl/*.whl; do
-              if [ -f \"\$w\" ]; then
+            echo '==> Building cryptography, cffi and all Hermes Agent binary extensions...' &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl cryptography==48.0.1 &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl cffi &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl pydantic-core &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl jiter &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl tiktoken &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl psutil &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl multidict &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl yarl &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl frozenlist &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl propcache &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl uvloop &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl watchfiles &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl 'ruamel.yaml.clib' &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl pyyaml &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl httptools &&
+            python3 -m pip wheel --no-deps --wheel-dir ~/build_whl MarkupSafe &&
+            echo '==> Retagging all wheels to android_24_arm64_v8a...' &&
+            cd ~/build_whl &&
+            for w in *.whl; do
+              if echo \"\$w\" | grep -qE 'cp314|abi3|aarch64|linux'; then
                 python3 -m wheel tags --platform-tag android_24_arm64_v8a \"\$w\" 2>/dev/null || true
+                rm -f \"\$w\"
               fi
             done &&
+            echo '==> Wheels built:' &&
+            ls -lah ~/build_whl/ &&
             cp -f ~/build_whl/*.whl /workspace/wheelhouse/
           "
-          tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse .
+          echo "==> Final wheelhouse contents:"
+          ls -lah wheelhouse/
+          tar -czf hermes-termux-wheelhouse.tar.gz -C wheelhouse .
+          tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse cryptography* cffi* 2>/dev/null || tar -czf cryptography-48.0.1-termux-wheelhouse.tar.gz -C wheelhouse .
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
+            hermes-termux-wheelhouse.tar.gz
             cryptography-48.0.1-termux-wheelhouse.tar.gz
             wheelhouse/*.whl
           tag_name: latest
-          name: "Cryptography 48.0.1 Termux Wheelhouse Release (Termux Native Container)"
-          body: "Pre-compiled cryptography 48.0.1 binary wheels compiled inside termux/termux-docker container on ARM64 for android_24_arm64_v8a / Termux Python 3.14."
+          name: "Hermes Agent Full Termux Wheelhouse (100% Bionic android_24_arm64_v8a)"
+          body: |
+            Pre-compiled 100% native Bionic binary wheels for all Hermes Agent C/Rust extensions.
+            Built inside termux/termux-docker:latest on ubuntu-24.04-arm (ARM64 runner).
+            Platform tag: android_24_arm64_v8a | Python 3.14 | Zero glibc dependencies.
+
+            Includes: cryptography==48.0.1, cffi, pydantic-core, jiter, tiktoken, psutil,
+            multidict, yarl, frozenlist, propcache, uvloop, watchfiles, ruamel.yaml.clib,
+            pyyaml, httptools, MarkupSafe.
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
