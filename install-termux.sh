@@ -28,6 +28,11 @@ else
     cd "$INSTALL_DIR"
 fi
 
+echo "==> Patching pyproject.toml for Termux Python 3.14 compatibility..."
+if [ -f "$INSTALL_DIR/pyproject.toml" ]; then
+    sed -i 's/<3\.14/<3.15/g' "$INSTALL_DIR/pyproject.toml" || true
+fi
+
 if [ ! -d "$VENV_DIR" ]; then
     echo "==> Creating Python virtual environment at $VENV_DIR..."
     python -m venv "$VENV_DIR"
