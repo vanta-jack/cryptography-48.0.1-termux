@@ -1,0 +1,36 @@
+name: Build Hermes Termux Wheelhouse Release
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Clone Hermes Agent repository
+        run: git clone --depth 1 https://github.com/NousResearch/Hermes-Agent.git hermes
+
+      - name: Build Wheelhouse inside Termux Docker container
+        run: |
+          mkdir -p wheelhouse
+          docker build -t termux-builder .
+          docker run --rm -v $(pwd)/wheelhouse:/out termux-builder \
+            pip wheel --wheel-dir /out cryptography==48.0.1 -r hermes/requirements.txt
+
+      - name: Compress Wheelhouse archive
+        run: tar -czf hermes-termux-wheelhouse.tar.gz -C wheelhouse .
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: hermes-termux-wheelhouse.tar.gz
+          tag_name: latest
+          name: "Hermes Agent Termux Wheelhouse Latest"
+          body: "Automated pre-compiled Python 3.11 binary wheels (including cryptography 48.0.1) targeted for Termux on Android (aarch64)."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
